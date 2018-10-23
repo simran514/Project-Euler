@@ -10,70 +10,40 @@ namespace SummationOfPrimes
 	{
 		static void Main(string[] args)
 		{
-			long max = 2000;
+			long max = 2000000;
 			long p = 2;
 			long sum = 0;
 			long index = 0;
 
-			List<long> array = new List<long>();
+			HashSet<long> array = new HashSet<long>();
+			HashSet<long> primeArray = new HashSet<long>();
 
-			for (int i = 1; i <= max; i++)
+			HashSet<bool> boolArray = new HashSet<bool>();
+
+			// populate the hashset with values from 2 to the max val
+			for (long i = 2; i < max; i++)
 			{
 				array.Add(i);
 			}
 
-			while (true)
+			//
+			for (long i = 2; i < Math.Sqrt(max); i++)
 			{
-				while (p < max)
+				for (long j = 2 * i; j < max; j += i)
 				{
-					array.Remove(p);
-					p *= 2;
-				}
-
-				for (long i = p; i <= max; i++)
-				{
-					if (array.Contains(i))
-					{
-						p = array.
-					}
-				}
-
-			}
-
-			for (long i = 0; i < max; i++)
-			{
-				if (IsPrime(i))
-				{
-					sum += i;
-					Console.WriteLine(sum);
+					array.Remove(j);
 				}
 			}
 
-			Console.WriteLine(sum);
+			foreach(long val in array)
+			{
+				sum += val;
+				Console.WriteLine(sum);
+			}
+
 			Console.ReadKey();
+
 		}
 
-		static bool IsPrime(long num)
-		{
-			int count = 0;
-			for (long i = 1; i <= num; i++)
-			{
-				if (num % i == 0)
-				{
-					count++;
-					if (!(i == 1 || i == num))
-					{
-						count = 0;
-						break;
-					}
-				}
-
-			}
-
-			if (count == 2)
-				return true;
-			else
-				return false;
-		}
 	}
 }
