@@ -21,50 +21,57 @@ namespace LexicographicPermutations
 			List<string> list = new List<string>();
 			List<string> store = new List<string>();
 
-			long numberOfPermutations = 9 * 8 * 7 * 6 * 5 * 4 * 3 * 2 * 1;
+			long numberOfPermutations = 10 * 9 * 8 * 7 * 6 * 5 * 4 * 3 * 2 * 1;
 
-
-			List<string> digits = new List<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
-			List<string> test = new List<string> { "1", "2"};
-			List<string> array = perm(test);
+			
 			
 
+			List<string> digits = new List<string> { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+			List<string> test = new List<string> { "1", "2", "3"};
+			List<string> array = perm(digits);
+
+			array.Sort();
+			Console.WriteLine(array[999999]);
+			Console.ReadKey();
 		}
 
 		static List<string> perm(List<string> data)
 		{
+
+			List<string> result = new List<string>();
 			List<string> tmp = new List<string>();
 			List<string> tmp2 = new List<string>();
-			List<string> array = new List<string>();
+			List<string> tmp3 = new List<string>();
+			//result = null;
 
-			if (data.Count == 1)
+			if (data.Count == 2)
 			{
-				tmp.Add(data[0]);
+				result.Add(String.Concat(data[0], data[1]));
+				result.Add(String.Concat(data[1], data[0]));
+				return result;
 			}
 			else
-			{
-				for (int i = 0; i < data.Count; i++)
+			{	
+				foreach(string s in data)
 				{
-					/*
-					 * tmp2 = data;
-					 * tmp2 = tmp2.RemoveAt(i);
-					 * 
-					 * tmp.Add(data[i] + perm(tmp2));
-					 */
+					tmp.Clear();
+					foreach (string n in data)
+						tmp.Add(n);
 
-					tmp2 = data;
-					tmp2.RemoveAt(i);
-					//Need to go through each value in tmp2 and concat them to data[i] separately before adding to tmp
-					array = perm(tmp2);
-					foreach(string s in array)
-					tmp.Add(String.Concat(data[i] , s));
-			
+					tmp.Remove(s);
+
+					tmp2 = perm(tmp);
+					foreach (string x in tmp2)
+						tmp3.Add(String.Concat(s, x));
 				}
-
 			}
 
+			foreach (string s in tmp3)
+			{
+				result.Add(s);
+			}
 
-			return tmp;
+			return result;
 		}
 	}
 }
