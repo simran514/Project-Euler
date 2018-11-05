@@ -13,7 +13,7 @@ namespace TextUsageChart
 	{
 		static void Main(string[] args)
 		{
-			string contents = File.ReadAllText(@"C:\Users\simran\AppData\Roaming\Apple Computer\MobileSync\Backup\5c34d9ae25cc0377b12843748fd1d277a14903fe\3d\3d0d7e5fb2ce288813306e4d4636395e047a3d28");
+			string contents = File.ReadAllText("3d0d7e5fb2ce288813306e4d4636395e047a3d28");
 			DataClass txtData = new DataClass(contents);
 			Console.WriteLine(contents);
 			Console.ReadKey();
