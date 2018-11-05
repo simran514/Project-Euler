@@ -1,10 +1,8 @@
-﻿using System;
+﻿using HtmlAgilityPack;
+using LinqToExcel;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using LinqToExcel;
 
 
 namespace BOM_Quantity_Checker
@@ -41,6 +39,8 @@ namespace BOM_Quantity_Checker
 			//int numBoards = Convert.ToInt32((Console.ReadLine()));
 			//Console.WriteLine();
 
+			int boardQty = 10;
+
 			var worksheetNames = bom.GetWorksheetNames();
 			var columnNames = bom.GetColumnNames(worksheetNames.ElementAt(0));
 
@@ -51,17 +51,20 @@ namespace BOM_Quantity_Checker
 			{
 				colNames.Add(c.ToString());
 			}
-			
+
 			foreach (var c in bom.Worksheet())
 			{
 				if (c[0].ToString() == "")
+				{
 					break;
+				}
+
 				itemNums.Add(c[0].ToString());
 			}
 
-			String[,] bomArray = new string[itemNums.Count()+1, colNames.Count()];
+			String[,] bomArray = new string[itemNums.Count() + 1, colNames.Count()];
 
-			for(int i = 0; i < colNames.Count; i++)
+			for (int i = 0; i < colNames.Count; i++)
 			{
 				bomArray[0, i] = colNames.ElementAt(i);
 			}
@@ -80,22 +83,106 @@ namespace BOM_Quantity_Checker
 			 */
 			int row = 1;
 			foreach (var c in bom.Worksheet())
-			{				
-					for (int col = 0; col < bomCols; col++)
-					{
-						bomArray[row, col] = c[col];
-					}
+			{
+				for (int col = 0; col < bomCols; col++)
+				{
+					bomArray[row, col] = c[col];
+				}
 				row++;
 
 				if (row == bomRows)
+				{
 					break;
+				}
 			}
 
-			//var x = from c in bom.Worksheet()
-			//		where c[0].Cast<int>() > 0
-			//		select c;
+			//bomArray[i, 8] is gonna have the url we need
+			//bomArray[i, 4] is gonna have the qty
+			List<string> itemOutOfStock = new List<string>();
+			List<string> itemNeedsManualCheck = new List<string>();
+
+			int availableStock = 0;
+			for (int i = 1; i < bomRows; i++)
+			{
+				if (bomArray[i, 8].Contains("digikey"))
+				{
+					availableStock = GetDigikeyQty(bomArray[i, 8]);
+					if (Convert.ToInt32(bomArray[i, 4]) * boardQty > availableStock)
+					{
+						itemOutOfStock.Add(bomArray[i, 0]);
+					}
+				}
+				else if (bomArray[i, 8].Contains("mouser"))
+				//if (bomArray[i, 8].Contains("mouser"))
+				{
+					availableStock = GetMouserQty(bomArray[i, 8]);
+					if (Convert.ToInt32(bomArray[i, 4]) * boardQty > availableStock)
+					{
+						itemOutOfStock.Add(bomArray[i, 0]);
+					}
+				}
+				else //needs to be manually checked
+				{
+
+				}
+				availableStock = 0;
+			}
+
+
+			Console.WriteLine("The following items do not have enough stock available: ");
+			foreach (string s in itemOutOfStock)
+			{
+				Console.WriteLine("Item " + s);
+			}
 
 			Console.ReadKey();
 		}
+
+		static int GetDigikeyQty(string url)
+		{
+			HtmlWeb web = new HtmlWeb();
+			HtmlAgilityPack.HtmlDocument doc = web.Load(url);
+
+			var htmlNodes = doc.DocumentNode.SelectNodes("//*[@id=\"dkQty\"]");
+			var test = doc.DocumentNode.SelectNodes("span[text()='10,000']");
+
+			string qty = doc.DocumentNode.SelectNodes("//*[@id=\"dkQty\"]")[0].InnerText;
+
+			for (int i = 32; i < 48; i++)
+			{
+				qty = qty.Replace(((char)i).ToString(), "");
+			}
+
+			for (int i = 58; i < 127; i++)
+			{
+				qty = qty.Replace(((char)i).ToString(), "");
+			}
+			return Convert.ToInt32(qty);
+		}
+
+		static int GetMouserQty(string url)
+		{
+			HtmlWeb web = new HtmlWeb();
+			HtmlAgilityPack.HtmlDocument doc = web.Load(url);
+
+			var htmlNodes = doc.DocumentNode.SelectNodes("//*[@id=\"pdpMainContentDiv\"]");
+			var test = doc.DocumentNode.SelectNodes("h4[text()='In Stock']");
+
+			string qty = doc.DocumentNode.SelectNodes("//*[@id=\"pdpPricingAvailability\"]/div[2]/div[1]/div[1]/div[2]/div/text()")[0].InnerText;
+
+			for (int i = 32; i < 48; i++)
+			{
+				qty = qty.Replace(((char)i).ToString(), "");
+			}
+
+			for (int i = 58; i < 127; i++)
+			{
+				qty = qty.Replace(((char)i).ToString(), "");
+			}
+
+			return Convert.ToInt32(qty);
+		}
+
+
 	}
 }
