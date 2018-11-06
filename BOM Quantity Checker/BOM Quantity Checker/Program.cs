@@ -5,46 +5,203 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Permissions;
 using System.Windows.Forms;
+using System.IO;
+using Newtonsoft.Json;
+using RestSharp;
+using CsvHelper;
+using Vse.Web.Serialization;
+
 
 
 namespace BOM_Quantity_Checker
 {
 	class Program
 	{
+		
 		[STAThread]
 		static void Main(string[] args)
 		{
-			/*
-			 * Ask user for number of boards needed
-			 * Take that (number+1), multiply by the qty of each individual parts to get total amount of parts ( +1 to account for shit getting dropped or lost)
-			 * Open the linked URL to see the qty available, do a compare
-			 * Return the item #s that don't have enough stock available
-			 * 
-			 * If a part description says  DNM, then skip that for the comparison
-			 * If the link is not for mouser or digikey, then throw that in a seperate "manual check" list
-			 * 
-			 */
-
-			//Console.WriteLine("Press ENTER to open file dialog to choose your BOM:");
-			//Console.ReadKey();
-
-			var bom = new ExcelQueryFactory(@"C:\Users\simran\source\repos\Project-Euler\BOM Quantity Checker\BOM Quantity Checker\bin\Debug\Replay Module Interface 1.2D BOM.xlsx");
-			//var bom = new ExcelQueryFactory();
-			//OpenFileDialog OFD = new OpenFileDialog();
-			//OFD.Multiselect = false;
-			//OFD.Title = "Open Excel Document";
-			//OFD.Filter = "Excel Document|*.xlsx;*.xls";
-			//OFD.ShowDialog();
-			//string filePath = OFD.FileName;
-			//bom.FileName = filePath.ToString();
-
-			//Console.Write("Thanks! Please enter the quantity of boards needed: ");
-			//int numBoards = Convert.ToInt32((Console.ReadLine()));
-			//Console.WriteLine();
-
-			//int boardQty = numBoards;
+			var bom = new ExcelQueryFactory(@"C:\Users\SIMRA\Downloads\Replay Module Interface 1.2D BOM.xlsx");
 			int boardQty = 10;
+			string apiKey = "7a0bccc5";
+			string octopartUrlBase = "http://octopart.com/api/v3";
+			string octopartUrlEndpoint = "parts/match";
+			List<Dictionary<string, string>> line_items = new List<Dictionary<string, string>>();
+			List<Dictionary<string, string>> queries = new List<Dictionary<string, string>>();
 
+			string[,] bomArray = BomToArray(bom);
+			string supplier = "";
+
+			for (int i = 1; i < bomArray.GetLength(0); i++)
+			{
+				if (bomArray[i, 8].Contains("digikey"))
+					supplier = "digikey";
+				if (bomArray[i, 8].Contains("mouser"))
+					supplier = "mouser";
+
+				line_items.Add(new Dictionary<string, string>()
+				{
+					{"line item", "line " + bomArray[i, 0]},
+					{"manufacturer", bomArray[i, 1]},
+					{"mpn", bomArray[i, 2]},
+					{"footprint", bomArray[i, 7]},
+					{"supplier", supplier}
+				});
+			}
+
+			
+
+
+			bool octopartApi = true;
+			while (!octopartApi)
+			{
+				///*
+				// * Ask user for number of boards needed
+				// * Take that (number+1), multiply by the qty of each individual parts to get total amount of parts ( +1 to account for shit getting dropped or lost)
+				// * Open the linked URL to see the qty available, do a compare
+				// * Return the item #s that don't have enough stock available
+				// * 
+				// * If a part description says  DNM, then skip that for the comparison
+				// * If the link is not for mouser or digikey, then throw that in a seperate "manual check" list
+				// * 
+				// */
+
+				////Use when working on PC
+				////var bom = new ExcelQueryFactory(@"C:\Users\simran\source\repos\Project-Euler\BOM Quantity Checker\BOM Quantity Checker\bin\Debug\Replay Module Interface 1.2D BOM.xlsx");
+				////int boardQty = 10;
+
+				////Use when working on surface
+				//var bom = new ExcelQueryFactory(@"C:\Users\SIMRA\Downloads\Replay Module Interface 1.2D BOM.xlsx");
+				//int boardQty = 10;
+
+				////Console.WriteLine("Press ENTER to open file dialog to choose your BOM:");
+				////Console.ReadKey();
+				////var bom = new ExcelQueryFactory();
+				////OpenFileDialog OFD = new OpenFileDialog();
+				////OFD.Multiselect = false;
+				////OFD.Title = "Open Excel Document";
+				////OFD.Filter = "Excel Document|*.xlsx;*.xls";
+				////OFD.ShowDialog();
+				////string filePath = OFD.FileName;
+				////bom.FileName = filePath.ToString();
+				////Console.Write("Thanks! Please enter the quantity of boards needed: ");
+				////int numBoards = Convert.ToInt32((Console.ReadLine()));
+				////Console.WriteLine();
+				////int boardQty = numBoards;
+
+
+				//var worksheetNames = bom.GetWorksheetNames();
+				//var columnNames = bom.GetColumnNames(worksheetNames.ElementAt(0));
+
+				//List<string> itemNums = new List<string>();
+				//List<string> colNames = new List<string>();
+
+				//foreach (var c in columnNames)
+				//{
+				//	colNames.Add(c.ToString());
+				//}
+
+				//foreach (var c in bom.Worksheet())
+				//{
+				//	if (c[0].ToString() == "")
+				//	{
+				//		break;
+				//	}
+
+				//	itemNums.Add(c[0].ToString());
+				//}
+
+				//String[,] bomArray = new string[itemNums.Count() + 1, colNames.Count()];
+
+				//for (int i = 0; i < colNames.Count; i++)
+				//{
+				//	bomArray[0, i] = colNames.ElementAt(i);
+				//}
+
+				//int bomRows = bomArray.GetLength(0);
+				//int bomCols = bomArray.GetLength(1);
+
+				///*
+				// * Go through each item c in the worksheet
+				// * c contains each element of each row
+				// * 
+				// * only increment col til we get to the end of the row
+				// * take bomArray[row, col] == to c[col]
+				// * 
+				// * now go on to the next row, repeat til done
+				// */
+				//int row = 1;
+				//foreach (var c in bom.Worksheet())
+				//{
+				//	for (int col = 0; col < bomCols; col++)
+				//	{
+				//		bomArray[row, col] = c[col];
+				//	}
+				//	row++;
+
+				//	if (row == bomRows)
+				//	{
+				//		break;
+				//	}
+				//}
+
+				////bomArray[i, 8] is gonna have the url we need
+				////bomArray[i, 4] is gonna have the qty
+				//List<string> itemOutOfStock = new List<string>();
+				//List<string> itemNeedsManualCheck = new List<string>();
+
+				//int availableStock = 0;
+				//for (int i = 1; i < bomRows; i++)
+				//{
+				//	if (bomArray[i, 8].Contains("digikey"))
+				//	{
+				//		availableStock = GetDigikeyQty(bomArray[i, 8]);
+				//		if (Convert.ToInt32(bomArray[i, 4]) * boardQty > availableStock)
+				//		{
+				//			itemOutOfStock.Add(bomArray[i, 0]);
+				//		}
+				//	}
+				//	else if (bomArray[i, 8].Contains("mouser"))
+				//	//if (bomArray[i, 8].Contains("mouser"))
+				//	{
+				//		availableStock = GetMouserQty(bomArray[i, 8]);
+				//		if (Convert.ToInt32(bomArray[i, 4]) * boardQty > availableStock)
+				//		{
+				//			itemOutOfStock.Add(bomArray[i, 0]);
+				//		}
+				//	}
+				//	else //needs to be manually checked
+				//	{
+				//		if (!bomArray[i, 3].Equals("DNM"))
+				//			itemNeedsManualCheck.Add(bomArray[i, 0]);
+				//	}
+				//	availableStock = 0;
+				//}
+
+
+				//Console.WriteLine("The following items do not have enough stock available: ");
+				//foreach (string s in itemOutOfStock)
+				//{
+				//	Console.WriteLine("Item " + s);
+				//}
+
+				//Console.WriteLine();
+
+				//if (!(itemNeedsManualCheck.Count < 1))
+				//	Console.WriteLine("The following items need to be checked manually: ");
+				//foreach (string s in itemNeedsManualCheck)
+				//{
+				//	Console.WriteLine("Item " + s);
+				//}
+
+				//Console.ReadKey();
+			}
+
+
+		}
+
+		static string[,] BomToArray(ExcelQueryFactory bom)
+		{
 			var worksheetNames = bom.GetWorksheetNames();
 			var columnNames = bom.GetColumnNames(worksheetNames.ElementAt(0));
 
@@ -76,15 +233,6 @@ namespace BOM_Quantity_Checker
 			int bomRows = bomArray.GetLength(0);
 			int bomCols = bomArray.GetLength(1);
 
-			/*
-			 * Go through each item c in the worksheet
-			 * c contains each element of each row
-			 * 
-			 * only increment col til we get to the end of the row
-			 * take bomArray[row, col] == to c[col]
-			 * 
-			 * now go on to the next row, repeat til done
-			 */
 			int row = 1;
 			foreach (var c in bom.Worksheet())
 			{
@@ -99,55 +247,7 @@ namespace BOM_Quantity_Checker
 					break;
 				}
 			}
-
-			//bomArray[i, 8] is gonna have the url we need
-			//bomArray[i, 4] is gonna have the qty
-			List<string> itemOutOfStock = new List<string>();
-			List<string> itemNeedsManualCheck = new List<string>();
-
-			int availableStock = 0;
-			for (int i = 1; i < bomRows; i++)
-			{
-				if (bomArray[i, 8].Contains("digikey"))
-				{
-					availableStock = GetDigikeyQty(bomArray[i, 8]);
-					if (Convert.ToInt32(bomArray[i, 4]) * boardQty > availableStock)
-					{
-						itemOutOfStock.Add(bomArray[i, 0]);
-					}
-				}
-				//else if (bomArray[i, 8].Contains("mouser"))
-				////if (bomArray[i, 8].Contains("mouser"))
-				//{
-				//	availableStock = GetMouserQty(bomArray[i, 8]);
-				//	if (Convert.ToInt32(bomArray[i, 4]) * boardQty > availableStock)
-				//	{
-				//		itemOutOfStock.Add(bomArray[i, 0]);
-				//	}
-				//}
-				else //needs to be manually checked
-				{
-					if (!bomArray[i, 3].Equals("DNM"))
-						itemNeedsManualCheck.Add(bomArray[i, 0]);
-				}
-				availableStock = 0;
-			}
-
-
-			Console.WriteLine("The following items do not have enough stock available: ");
-			foreach (string s in itemOutOfStock)
-			{
-				Console.WriteLine("Item " + s);
-			}
-
-			Console.WriteLine();
-			Console.WriteLine("The following items need to be checked manually: ");
-			foreach (string s in itemNeedsManualCheck)
-			{
-				Console.WriteLine("Item " + s);
-			}
-
-			Console.ReadKey();
+			return bomArray;
 		}
 
 		static int GetDigikeyQty(string url)
