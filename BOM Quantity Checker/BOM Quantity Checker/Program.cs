@@ -3,6 +3,8 @@ using LinqToExcel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Permissions;
+using System.Windows.Forms;
 
 
 namespace BOM_Quantity_Checker
@@ -27,6 +29,7 @@ namespace BOM_Quantity_Checker
 			//Console.ReadKey();
 
 			var bom = new ExcelQueryFactory(@"C:\Users\simran\source\repos\Project-Euler\BOM Quantity Checker\BOM Quantity Checker\bin\Debug\Replay Module Interface 1.2D BOM.xlsx");
+			//var bom = new ExcelQueryFactory();
 			//OpenFileDialog OFD = new OpenFileDialog();
 			//OFD.Multiselect = false;
 			//OFD.Title = "Open Excel Document";
@@ -39,6 +42,7 @@ namespace BOM_Quantity_Checker
 			//int numBoards = Convert.ToInt32((Console.ReadLine()));
 			//Console.WriteLine();
 
+			//int boardQty = numBoards;
 			int boardQty = 10;
 
 			var worksheetNames = bom.GetWorksheetNames();
@@ -112,18 +116,19 @@ namespace BOM_Quantity_Checker
 						itemOutOfStock.Add(bomArray[i, 0]);
 					}
 				}
-				else if (bomArray[i, 8].Contains("mouser"))
-				//if (bomArray[i, 8].Contains("mouser"))
-				{
-					availableStock = GetMouserQty(bomArray[i, 8]);
-					if (Convert.ToInt32(bomArray[i, 4]) * boardQty > availableStock)
-					{
-						itemOutOfStock.Add(bomArray[i, 0]);
-					}
-				}
+				//else if (bomArray[i, 8].Contains("mouser"))
+				////if (bomArray[i, 8].Contains("mouser"))
+				//{
+				//	availableStock = GetMouserQty(bomArray[i, 8]);
+				//	if (Convert.ToInt32(bomArray[i, 4]) * boardQty > availableStock)
+				//	{
+				//		itemOutOfStock.Add(bomArray[i, 0]);
+				//	}
+				//}
 				else //needs to be manually checked
 				{
-
+					if (!bomArray[i, 3].Equals("DNM"))
+						itemNeedsManualCheck.Add(bomArray[i, 0]);
 				}
 				availableStock = 0;
 			}
@@ -131,6 +136,13 @@ namespace BOM_Quantity_Checker
 
 			Console.WriteLine("The following items do not have enough stock available: ");
 			foreach (string s in itemOutOfStock)
+			{
+				Console.WriteLine("Item " + s);
+			}
+
+			Console.WriteLine();
+			Console.WriteLine("The following items need to be checked manually: ");
+			foreach (string s in itemNeedsManualCheck)
 			{
 				Console.WriteLine("Item " + s);
 			}
@@ -160,6 +172,9 @@ namespace BOM_Quantity_Checker
 			return Convert.ToInt32(qty);
 		}
 
+		//Looks like Mouser.com is only allowing me to access their web page a set number of times within a certain time range?
+		//After attempting to scrape web page after a set number of attemtps, all further access attempts return null values
+		//SOLUTION: only use digikey links?
 		static int GetMouserQty(string url)
 		{
 			HtmlWeb web = new HtmlWeb();
@@ -170,7 +185,7 @@ namespace BOM_Quantity_Checker
 
 			string qty = doc.DocumentNode.SelectNodes("//*[@id=\"pdpPricingAvailability\"]/div[2]/div[1]/div[1]/div[2]/div/text()")[0].InnerText;
 
-			for (int i = 32; i < 48; i++)
+			for (int i = 0; i < 48; i++)
 			{
 				qty = qty.Replace(((char)i).ToString(), "");
 			}
