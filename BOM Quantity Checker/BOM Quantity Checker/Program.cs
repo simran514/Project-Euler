@@ -10,6 +10,8 @@ using Newtonsoft.Json;
 using RestSharp;
 using CsvHelper;
 using Vse.Web.Serialization;
+using WebApiContrib.Formatting;
+using System.Web.Script.Serialization;
 
 
 
@@ -47,9 +49,62 @@ namespace BOM_Quantity_Checker
 					{"footprint", bomArray[i, 7]},
 					{"supplier", supplier}
 				});
+				
+				queries.Add(new Dictionary<string, string>()
+				{
+					{"mpn", bomArray[i, 2]},
+					{"brand", bomArray[i, 1]},
+					{"reference",  "line " + bomArray[i, 0]}
+				}
+				);
 			}
 
 			
+
+
+			string octopartUrlEntpoint = "parts/search";
+			// Create the search request
+			string query = "ERJ-2RKF1200X";
+			var client = new RestClient(octopartUrlBase);
+			var req = new RestRequest(octopartUrlEntpoint, Method.GET)
+						.AddParameter("apikey", apiKey)
+						.AddParameter("q", query)
+						.AddParameter("start", "0")
+						.AddParameter("limit", "10")
+						.AddParameter("filter[fields][offers.seller.name]", "Mouser"); //this filter line dont work
+			// Perform the search and obtain results
+			var data = client.Execute(req).Content;
+			var response = JsonConvert.DeserializeObject<dynamic>(data);
+
+			foreach(var result in response["results"])
+			{
+				var part = result["item"];
+				//Console.WriteLine(part["brand"]["name"] + " - " + part["mpn"] + " - " + part["brand"]["homepage_url"]);
+				Console.WriteLine(part["brand"]["name"]);
+				Console.WriteLine(part["mpn"]);
+				//Console.WriteLine(part["seller"]);
+				for (int i = 0; i < part["offers"].Count; i++)
+					Console.WriteLine(part["offers"][i]["seller"]["name"] + " - " + part["offers"][i]["in_stock_quantity"]);
+					//Console.WriteLine(part["offers"][3]["seller"]["name"]);
+				//Console.WriteLine(part["short_description"]);
+				//Console.WriteLine(part["partoffer"]["in_stock_quantity"]);
+				//Console.WriteLine(part["sku"]);
+
+
+				Console.WriteLine();
+			}
+			Console.ReadKey();
+
+			List<dynamic> results = new List<dynamic>();
+			for (int i = 0; i < queries.Count; i += 20)
+			{
+				// Batch queries in groups of 20, query limit of
+				// parts match endpoint
+				var batched_queries = queries.GetRange(i, Math.Min(20, queries.Count - i));
+
+				
+				results.AddRange(response["results"]);
+			}
 
 
 			bool octopartApi = true;
