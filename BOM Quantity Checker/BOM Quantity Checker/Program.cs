@@ -23,7 +23,8 @@ namespace BOM_Quantity_Checker
 		[STAThread]
 		static void Main(string[] args)
 		{
-			var bom = new ExcelQueryFactory(@"C:\Users\SIMRA\Downloads\Replay Module Interface 1.2D BOM.xlsx");
+			//var bom = new ExcelQueryFactory(@"C:\Users\SIMRA\Downloads\Replay Module Interface 1.2D BOM.xlsx");
+			var bom = new ExcelQueryFactory(@"C:\Users\simran\source\repos\Project-Euler\BOM Quantity Checker\BOM Quantity Checker\bin\Debug\Replay Module Interface 1.2D BOM.xlsx");
 			int boardQty = 10;
 			string apiKey = "7a0bccc5";
 			string octopartUrlBase = "http://octopart.com/api/v3";
@@ -59,7 +60,7 @@ namespace BOM_Quantity_Checker
 				);
 			}
 
-			
+			string queryString = (new JavaScriptSerializer()).Serialize(line_items);
 
 
 			string octopartUrlEntpoint = "parts/search";
@@ -71,10 +72,16 @@ namespace BOM_Quantity_Checker
 						.AddParameter("q", query)
 						.AddParameter("start", "0")
 						.AddParameter("limit", "10")
-						.AddParameter("filter[fields][offers.seller.name]", "Mouser"); //this filter line dont work
+						.AddParameter("filter[fields][seller][]", "Digi-Key"); //this filter line dont work
 			// Perform the search and obtain results
 			var data = client.Execute(req).Content;
 			var response = JsonConvert.DeserializeObject<dynamic>(data);
+
+			//Console.WriteLine(response);
+			
+			Console.WriteLine();
+			for (int i = 0; i < response.results[0].item.offers.Count; i++)
+				Console.WriteLine(response.results[0].item.offers[i].seller.name);
 
 			foreach(var result in response["results"])
 			{
@@ -83,6 +90,7 @@ namespace BOM_Quantity_Checker
 				Console.WriteLine(part["brand"]["name"]);
 				Console.WriteLine(part["mpn"]);
 				//Console.WriteLine(part["seller"]);
+
 				for (int i = 0; i < part["offers"].Count; i++)
 					Console.WriteLine(part["offers"][i]["seller"]["name"] + " - " + part["offers"][i]["in_stock_quantity"]);
 					//Console.WriteLine(part["offers"][3]["seller"]["name"]);
